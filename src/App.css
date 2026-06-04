@@ -1,0 +1,64 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body, html, #root {
+  width: 100%;
+  height: 100%;
+  background: #04040a;
+  overflow: hidden;
+}
+
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background: #04040a;
+  gap: 10px;
+}
+
+.title-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  letter-spacing: 0.25em;
+  user-select: none;
+}
+
+.title-word {
+  font-family: 'Georgia', serif;
+  font-size: 22px;
+  color: #445566;
+  font-style: italic;
+}
+
+.title-word.dim {
+  color: #223344;
+}
+
+.subtitle {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #1a2530;
+  margin-left: 14px;
+  letter-spacing: 0.12em;
+}
+
+.game-container {
+  width: 100%;
+  max-width: 1280px;
+  canvas {
+    display: block;
+    image-rendering: auto;
+  }
+}
+
+.footer-bar {
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: #1a2230;
+  letter-spacing: 0.15em;
+  text-transform: lowercase;
+}
+
