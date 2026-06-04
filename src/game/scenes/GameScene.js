@@ -3,6 +3,7 @@ import { Player } from '../entities/Player.js';
 import { Guard } from '../entities/Guard.js';
 import { GAME_CONFIG } from '../config.js';
 import { audio } from '../AudioManager.js';
+import { _drawAMSLogo } from './SplashScene.js';
 
 const GROUND_SEGMENTS = [{ x: 0, w: 2400 }];
 
@@ -48,6 +49,7 @@ export class GameScene extends Phaser.Scene {
     this.deathCount   = 0;
     this.leverPulled  = false;
     this._won         = false;
+    this._killing     = false;
     this.touch = { left: false, right: false, jump: false, jumpJustPressed: false };
     this._prevJump = false;
   }
@@ -178,12 +180,13 @@ export class GameScene extends Phaser.Scene {
 
     // ── FOG ───────────────────────────────────────────────────────
     this.fogOverlay = this.add.image(0, 0, 'fog')
-      .setOrigin(0).setDepth(30).setScrollFactor(0).setAlpha(0.15);
+      .setOrigin(0).setDepth(30).setScrollFactor(0).setAlpha(0.08);
 
     // ── UI ────────────────────────────────────────────────────────
     this._buildUI();
     this._buildVignette();
     this._buildTouchControls();
+    this._buildWatermark();
 
     // ── AUDIO ─────────────────────────────────────────────────────
     audio.startAmbient();
@@ -391,10 +394,22 @@ export class GameScene extends Phaser.Scene {
       btn.on('pointerdown', () => { this.touch[key] = true;  btn.setAlpha(0.75); });
       btn.on('pointerup',   () => { this.touch[key] = false; btn.setAlpha(alpha); });
       btn.on('pointerout',  () => { this.touch[key] = false; btn.setAlpha(alpha); });
+      btn.on('pointerupoutside', () => { this.touch[key] = false; btn.setAlpha(alpha); });
     };
     bindBtn(leftBtn, 'left');
     bindBtn(rightBtn, 'right');
     bindBtn(jumpBtn, 'jump');
+
+    // Global safety — if pointer released anywhere, clear all touch states
+    this.input.on('pointerup', () => {
+      this.touch.left  = false;
+      this.touch.right = false;
+      this.touch.jump  = false;
+      leftBtn.setAlpha(alpha);
+      rightBtn.setAlpha(alpha);
+      jumpBtn.setAlpha(alpha);
+    });
+
     this.input.addPointer(3);
   }
 
@@ -442,7 +457,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   _killPlayer() {
-    if (this.player.isDead) return;
+    if (this.player.isDead || this.player._isRespawning || this._killing) return;
+    this._killing = true;
     this.deathCount++;
     this.deathText.setText(`deaths: ${this.deathCount}`);
     audio.playDeath();
@@ -474,6 +490,7 @@ export class GameScene extends Phaser.Scene {
       this.time.delayedCall(450, () => {
         this.player.respawn(this.checkpointX, this.checkpointY);
         this.cameras.main.fadeIn(500, 0, 0, 0);
+        this.time.delayedCall(650, () => { this._killing = false; });
       });
     });
   }
@@ -483,13 +500,26 @@ export class GameScene extends Phaser.Scene {
     this._won = true;
     audio.playWin();
     audio.stopAmbient();
-
     this.cameras.main.fade(800, 0, 0, 0);
-
     this.time.delayedCall(900, () => {
-      // Transition to level 2
       this.scene.start('Level2Scene');
     });
+  }
+
+
+  _buildWatermark() {
+    const canvas = document.createElement('canvas');
+    canvas.width  = 60;
+    canvas.height = 60;
+    const ctx = canvas.getContext('2d');
+    _drawAMSLogo(ctx, 30, 30, 28, 0.5);
+    const key = 'ams-watermark-' + this.scene.key;
+    if (this.textures.exists(key)) this.textures.remove(key);
+    this.textures.addCanvas(key, canvas);
+    this.add.image(this.scale.width - 38, 22, key)
+      .setScrollFactor(0)
+      .setDepth(55)
+      .setAlpha(0.18);
   }
 
   _scheduleFlicker() {

@@ -187,11 +187,14 @@ export function generatePlayerSheet(scene) {
   const poseNames = ['idle0','idle1','run0','run1','run2','run3','run4','run5','jump','fall','land'];
   poseNames.forEach((pose, i) => drawFrame(ctx, i * W, 0, pose));
 
-  // Add to Phaser texture manager
+  // Add to Phaser texture manager as a spritesheet
   if (scene.textures.exists('player-sheet')) {
     scene.textures.remove('player-sheet');
   }
-  scene.textures.addCanvas('player-sheet', canvas);
+  scene.textures.addSpriteSheet('player-sheet', canvas, {
+    frameWidth: W,
+    frameHeight: H,
+  });
 }
 
 export const ANIM_FRAMES = {

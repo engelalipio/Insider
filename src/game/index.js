@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene.js';
+import { SplashScene, MenuScene } from './scenes/SplashScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { Level2Scene } from './scenes/Level2Scene.js';
 import { GAME_CONFIG } from './config.js';
@@ -18,7 +19,7 @@ export function createGame(parent) {
         debug: false,
       },
     },
-    scene: [BootScene, GameScene, Level2Scene],
+    scene: [BootScene, SplashScene, MenuScene, GameScene, Level2Scene],
     render: {
       pixelArt: false,
       antialias: true,

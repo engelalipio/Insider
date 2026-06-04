@@ -8,17 +8,17 @@ export class BootScene extends Phaser.Scene {
   create() {
     // ── SKY GRADIENT ──────────────────────────────────────────────
     const skyGfx = this.make.graphics({ x: 0, y: 0, add: false });
-    skyGfx.fillGradientStyle(0x1a2a4a, 0x1a2a4a, 0x2e4a6e, 0x2e4a6e, 1);
+    skyGfx.fillGradientStyle(0x2a4a7a, 0x2a4a7a, 0x4a7aaa, 0x4a7aaa, 1);
     skyGfx.fillRect(0, 0, 1280, 400);
     skyGfx.generateTexture('sky', 1280, 400);
     skyGfx.destroy();
 
     // ── FAR BG (silhouette hills) ─────────────────────────────────
     const farGfx = this.make.graphics({ x: 0, y: 0, add: false });
-    farGfx.fillStyle(0x1a2a3e, 1);
+    farGfx.fillStyle(0x2a3e5a, 1);
     farGfx.fillRect(0, 0, 1280, 400);
     // distant hills
-    farGfx.fillStyle(0x223344, 1);
+    farGfx.fillStyle(0x3a5570, 1);
     for (let i = 0; i < 8; i++) {
       const hx = i * 180 + 40;
       const hy = 200 + Math.sin(i * 1.3) * 30;
@@ -34,7 +34,7 @@ export class BootScene extends Phaser.Scene {
     midGfx.fillStyle(0x0a0a0a, 0);
     midGfx.fillRect(0, 0, 1280, 400);
     // tree silhouettes
-    midGfx.fillStyle(0x1a2a1a, 1);
+    midGfx.fillStyle(0x2a442a, 1);
     for (let i = 0; i < 22; i++) {
       const tx = i * 62 - 10;
       const th = 120 + (i % 3) * 40;
@@ -59,10 +59,10 @@ export class BootScene extends Phaser.Scene {
 
     // ── NEAR BG (dark ground layer) ───────────────────────────────
     const nearGfx = this.make.graphics({ x: 0, y: 0, add: false });
-    nearGfx.fillStyle(0x151520, 1);
+    nearGfx.fillStyle(0x1e2230, 1);
     nearGfx.fillRect(0, 310, 1280, 90);
     // some scattered rocks
-    nearGfx.fillStyle(0x1e1e2e, 1);
+    nearGfx.fillStyle(0x2a2a3e, 1);
     [100, 300, 550, 780, 1000, 1200].forEach(rx => {
       nearGfx.fillEllipse(rx, 320, 60 + (rx % 40), 20);
     });
@@ -160,7 +160,7 @@ export class BootScene extends Phaser.Scene {
 
     // ── SKY2 (darker, for level 2) ───────────────────────────────
     const sky2Gfx = this.make.graphics({ x: 0, y: 0, add: false });
-    sky2Gfx.fillGradientStyle(0x080810, 0x080810, 0x111122, 0x111122, 1);
+    sky2Gfx.fillGradientStyle(0x141428, 0x141428, 0x1e1e38, 0x1e1e38, 1);
     sky2Gfx.fillRect(0, 0, 1280, 400);
     // Add some stars
     sky2Gfx.fillStyle(0xffffff, 1);
@@ -173,7 +173,7 @@ export class BootScene extends Phaser.Scene {
     sky2Gfx.generateTexture('sky2', 1280, 400);
     sky2Gfx.destroy();
 
-    this.scene.start('GameScene');
+    this.scene.start('SplashScene');
   }
 }
 

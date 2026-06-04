@@ -14,11 +14,12 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.body.setOffset(6, 4);
     this.body.setGravityY(0);
 
-    this.isDead      = false;
-    this.isGrounded  = false;
+    this.isDead       = false;
+    this.isGrounded   = false;
     this._wasGrounded = false;
-    this._landFrame  = 0;
+    this._landFrame   = 0;
     this._currentAnim = null;
+    this._isRespawning = false;
 
     this._createAnims(scene);
   }
@@ -81,12 +82,13 @@ export class Player extends Phaser.GameObjects.Sprite {
 
   _playAnim(key) {
     if (this._currentAnim === key) return;
+    if (!this.scene.anims.exists(key)) return;
     this._currentAnim = key;
     this.play(key);
   }
 
   update(cursors, wasd, touch = {}) {
-    if (this.isDead) return;
+    if (this.isDead || this._isRespawning) return;
 
     this._wasGrounded = this.isGrounded;
     this.isGrounded   = this.body.blocked.down;
@@ -168,11 +170,14 @@ export class Player extends Phaser.GameObjects.Sprite {
   }
 
   die(callback) {
-    if (this.isDead) return;
+    if (this.isDead || this._isRespawning) return;
     this.isDead = true;
+    this._isRespawning = false;
+    this.scene.tweens.killTweensOf(this);
     this.stop();
-    this.body.setVelocity(0, -180);
-    this.body.setGravityY(200);
+    // Disable physics body immediately — prevents re-triggering overlaps
+    this.body.enable = false;
+    this.body.setVelocity(0, 0);
 
     this.scene.tweens.add({
       targets: this,
@@ -191,11 +196,14 @@ export class Player extends Phaser.GameObjects.Sprite {
 
   respawn(x, y) {
     this.isDead = false;
+    this._isRespawning = true;
     this._currentAnim = null;
     this.setPosition(x, y);
     this.setAlpha(0);
     this.setScale(1, 1);
     this.setAngle(0);
+    // Re-enable physics body
+    this.body.enable = true;
     this.body.setVelocity(0, 0);
     this.body.setGravityY(0);
     this._playAnim('player-idle');
@@ -205,6 +213,7 @@ export class Player extends Phaser.GameObjects.Sprite {
       alpha: 1,
       duration: 600,
       ease: 'Power2',
+      onComplete: () => { this._isRespawning = false; },
     });
   }
 }

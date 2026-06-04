@@ -1,5 +1,5 @@
 #!/bin/bash
-# inside-game — animated player sprite
+# inside-game — stuck right button fix
 # Run from inside your inside-game folder
 
 mkdir -p src/game/scenes src/game/entities
@@ -19,6 +19,7 @@ ENDOFFILE
 cat > src/game/index.js << 'ENDOFFILE'
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene.js';
+import { SplashScene, MenuScene } from './scenes/SplashScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { Level2Scene } from './scenes/Level2Scene.js';
 import { GAME_CONFIG } from './config.js';
@@ -37,7 +38,7 @@ export function createGame(parent) {
         debug: false,
       },
     },
-    scene: [BootScene, GameScene, Level2Scene],
+    scene: [BootScene, SplashScene, MenuScene, GameScene, Level2Scene],
     render: {
       pixelArt: false,
       antialias: true,
@@ -475,11 +476,14 @@ export function generatePlayerSheet(scene) {
   const poseNames = ['idle0','idle1','run0','run1','run2','run3','run4','run5','jump','fall','land'];
   poseNames.forEach((pose, i) => drawFrame(ctx, i * W, 0, pose));
 
-  // Add to Phaser texture manager
+  // Add to Phaser texture manager as a spritesheet
   if (scene.textures.exists('player-sheet')) {
     scene.textures.remove('player-sheet');
   }
-  scene.textures.addCanvas('player-sheet', canvas);
+  scene.textures.addSpriteSheet('player-sheet', canvas, {
+    frameWidth: W,
+    frameHeight: H,
+  });
 }
 
 export const ANIM_FRAMES = {
@@ -507,17 +511,17 @@ export class BootScene extends Phaser.Scene {
   create() {
     // ── SKY GRADIENT ──────────────────────────────────────────────
     const skyGfx = this.make.graphics({ x: 0, y: 0, add: false });
-    skyGfx.fillGradientStyle(0x1a2a4a, 0x1a2a4a, 0x2e4a6e, 0x2e4a6e, 1);
+    skyGfx.fillGradientStyle(0x2a4a7a, 0x2a4a7a, 0x4a7aaa, 0x4a7aaa, 1);
     skyGfx.fillRect(0, 0, 1280, 400);
     skyGfx.generateTexture('sky', 1280, 400);
     skyGfx.destroy();
 
     // ── FAR BG (silhouette hills) ─────────────────────────────────
     const farGfx = this.make.graphics({ x: 0, y: 0, add: false });
-    farGfx.fillStyle(0x1a2a3e, 1);
+    farGfx.fillStyle(0x2a3e5a, 1);
     farGfx.fillRect(0, 0, 1280, 400);
     // distant hills
-    farGfx.fillStyle(0x223344, 1);
+    farGfx.fillStyle(0x3a5570, 1);
     for (let i = 0; i < 8; i++) {
       const hx = i * 180 + 40;
       const hy = 200 + Math.sin(i * 1.3) * 30;
@@ -533,7 +537,7 @@ export class BootScene extends Phaser.Scene {
     midGfx.fillStyle(0x0a0a0a, 0);
     midGfx.fillRect(0, 0, 1280, 400);
     // tree silhouettes
-    midGfx.fillStyle(0x1a2a1a, 1);
+    midGfx.fillStyle(0x2a442a, 1);
     for (let i = 0; i < 22; i++) {
       const tx = i * 62 - 10;
       const th = 120 + (i % 3) * 40;
@@ -558,10 +562,10 @@ export class BootScene extends Phaser.Scene {
 
     // ── NEAR BG (dark ground layer) ───────────────────────────────
     const nearGfx = this.make.graphics({ x: 0, y: 0, add: false });
-    nearGfx.fillStyle(0x151520, 1);
+    nearGfx.fillStyle(0x1e2230, 1);
     nearGfx.fillRect(0, 310, 1280, 90);
     // some scattered rocks
-    nearGfx.fillStyle(0x1e1e2e, 1);
+    nearGfx.fillStyle(0x2a2a3e, 1);
     [100, 300, 550, 780, 1000, 1200].forEach(rx => {
       nearGfx.fillEllipse(rx, 320, 60 + (rx % 40), 20);
     });
@@ -659,7 +663,7 @@ export class BootScene extends Phaser.Scene {
 
     // ── SKY2 (darker, for level 2) ───────────────────────────────
     const sky2Gfx = this.make.graphics({ x: 0, y: 0, add: false });
-    sky2Gfx.fillGradientStyle(0x080810, 0x080810, 0x111122, 0x111122, 1);
+    sky2Gfx.fillGradientStyle(0x141428, 0x141428, 0x1e1e38, 0x1e1e38, 1);
     sky2Gfx.fillRect(0, 0, 1280, 400);
     // Add some stars
     sky2Gfx.fillStyle(0xffffff, 1);
@@ -672,8 +676,215 @@ export class BootScene extends Phaser.Scene {
     sky2Gfx.generateTexture('sky2', 1280, 400);
     sky2Gfx.destroy();
 
-    this.scene.start('GameScene');
+    this.scene.start('SplashScene');
   }
+}
+
+ENDOFFILE
+
+cat > src/game/scenes/SplashScene.js << 'ENDOFFILE'
+import Phaser from 'phaser';
+
+// ── SplashScene ───────────────────────────────────────────────────────────────
+// Shows the AMS logo for ~2.5s then transitions to MenuScene.
+// The logo is drawn procedurally on a canvas to match the uploaded asset.
+
+export class SplashScene extends Phaser.Scene {
+  constructor() {
+    super({ key: 'SplashScene' });
+  }
+
+  create() {
+    const W = this.scale.width;
+    const H = this.scale.height;
+
+    // Black background
+    this.add.rectangle(W / 2, H / 2, W, H, 0x000000);
+
+    // Draw AMS logo onto canvas texture
+    const canvas = document.createElement('canvas');
+    canvas.width  = 260;
+    canvas.height = 260;
+    const ctx = canvas.getContext('2d');
+
+    _drawAMSLogo(ctx, 130, 130, 110);
+
+    if (this.textures.exists('ams-logo-splash')) this.textures.remove('ams-logo-splash');
+    this.textures.addCanvas('ams-logo-splash', canvas);
+
+    const logo = this.add.image(W / 2, H / 2, 'ams-logo-splash')
+      .setAlpha(0)
+      .setScale(1.1);
+
+    // Fade in
+    this.tweens.add({
+      targets: logo,
+      alpha: 1,
+      scale: 1,
+      duration: 900,
+      ease: 'Power2',
+    });
+
+    // Hold then fade out → MenuScene
+    this.time.delayedCall(2200, () => {
+      this.tweens.add({
+        targets: logo,
+        alpha: 0,
+        scale: 0.95,
+        duration: 700,
+        ease: 'Power2',
+        onComplete: () => this.scene.start('MenuScene'),
+      });
+    });
+  }
+}
+
+// ── MenuScene ─────────────────────────────────────────────────────────────────
+export class MenuScene extends Phaser.Scene {
+  constructor() {
+    super({ key: 'MenuScene' });
+  }
+
+  create() {
+    const W = this.scale.width;
+    const H = this.scale.height;
+
+    // Dark background with subtle gradient feel
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x000000, 0x000000, 0x0a0a1a, 0x0a0a1a, 1);
+    bg.fillRect(0, 0, W, H);
+
+    // Draw smaller AMS logo as backdrop watermark
+    const bgCanvas = document.createElement('canvas');
+    bgCanvas.width  = 320;
+    bgCanvas.height = 320;
+    const bgCtx = bgCanvas.getContext('2d');
+    _drawAMSLogo(bgCtx, 160, 160, 140, 0.08);
+    if (this.textures.exists('ams-logo-bg')) this.textures.remove('ams-logo-bg');
+    this.textures.addCanvas('ams-logo-bg', bgCanvas);
+
+    this.add.image(W / 2, H / 2 - 20, 'ams-logo-bg').setAlpha(1);
+
+    // Game title
+    const title = this.add.text(W / 2, H / 2 - 80, 'INSIDE', {
+      fontFamily: '"Courier New", monospace',
+      fontSize: '48px',
+      color: '#ffffff',
+      letterSpacing: 18,
+    }).setOrigin(0.5).setAlpha(0);
+
+    const subtitle = this.add.text(W / 2, H / 2 - 36, 'a g i l e  m o b i l e  s o l u t i o n s', {
+      fontFamily: '"Courier New", monospace',
+      fontSize: '11px',
+      color: '#445566',
+      letterSpacing: 4,
+    }).setOrigin(0.5).setAlpha(0);
+
+    // Start prompt
+    const startText = this.add.text(W / 2, H / 2 + 60, 'TAP TO BEGIN', {
+      fontFamily: '"Courier New", monospace',
+      fontSize: '14px',
+      color: '#667788',
+      letterSpacing: 6,
+    }).setOrigin(0.5).setAlpha(0);
+
+    // Death/best score if exists
+    const best = localStorage.getItem('ams-best-deaths');
+    if (best !== null) {
+      this.add.text(W / 2, H / 2 + 90, `best run: ${best} deaths`, {
+        fontFamily: '"Courier New", monospace',
+        fontSize: '11px',
+        color: '#334455',
+      }).setOrigin(0.5).setAlpha(0.7);
+    }
+
+    // Version
+    this.add.text(W - 12, H - 12, 'v1.0', {
+      fontFamily: '"Courier New", monospace',
+      fontSize: '10px',
+      color: '#223344',
+    }).setOrigin(1, 1);
+
+    // Fade in elements
+    this.tweens.add({ targets: title,     alpha: 1, duration: 1000, delay: 200,  ease: 'Power2' });
+    this.tweens.add({ targets: subtitle,  alpha: 1, duration: 1000, delay: 600,  ease: 'Power2' });
+    this.tweens.add({ targets: startText, alpha: 1, duration: 800,  delay: 1200, ease: 'Power2' });
+
+    // Pulse the start prompt
+    this.time.delayedCall(1400, () => {
+      this.tweens.add({
+        targets: startText,
+        alpha: { from: 1, to: 0.3 },
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    });
+
+    // Start on tap/click/key
+    this.input.once('pointerdown', () => this._startGame());
+    this.input.keyboard.once('keydown', () => this._startGame());
+  }
+
+  _startGame() {
+    this.cameras.main.fade(500, 0, 0, 0);
+    this.time.delayedCall(550, () => this.scene.start('GameScene'));
+  }
+}
+
+// ── Shared logo drawing function ──────────────────────────────────────────────
+export function _drawAMSLogo(ctx, cx, cy, radius, globalAlpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = globalAlpha;
+
+  // Outer circle fill
+  ctx.fillStyle = '#000000';
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Outer ring
+  ctx.strokeStyle = '#555555';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius - 1, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Inner subtle ring
+  ctx.strokeStyle = '#333333';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius - 6, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Text settings
+  const scale = radius / 110;
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // AGILE
+  ctx.font = `bold ${Math.round(28 * scale)}px "Arial", sans-serif`;
+  ctx.letterSpacing = `${4 * scale}px`;
+  ctx.fillText('AGILE', cx, cy - 28 * scale);
+
+  // MOBILE (with the O having a dot — drawn manually)
+  ctx.fillText('MOBILE', cx, cy + 2 * scale);
+
+  // SOLUTIONS
+  ctx.font = `${Math.round(10 * scale)}px "Arial", sans-serif`;
+  ctx.letterSpacing = `${6 * scale}px`;
+  ctx.fillStyle = '#aaaaaa';
+  ctx.fillText('SOLUTIONS', cx, cy + 34 * scale);
+
+  // Dot accent on the i in AGILE (decorative)
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(cx + (4 * scale), cy - 40 * scale, 2 * scale, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
 }
 
 ENDOFFILE
@@ -684,6 +895,7 @@ import { Player } from '../entities/Player.js';
 import { Guard } from '../entities/Guard.js';
 import { GAME_CONFIG } from '../config.js';
 import { audio } from '../AudioManager.js';
+import { _drawAMSLogo } from './SplashScene.js';
 
 const GROUND_SEGMENTS = [{ x: 0, w: 2400 }];
 
@@ -729,6 +941,7 @@ export class GameScene extends Phaser.Scene {
     this.deathCount   = 0;
     this.leverPulled  = false;
     this._won         = false;
+    this._killing     = false;
     this.touch = { left: false, right: false, jump: false, jumpJustPressed: false };
     this._prevJump = false;
   }
@@ -859,12 +1072,13 @@ export class GameScene extends Phaser.Scene {
 
     // ── FOG ───────────────────────────────────────────────────────
     this.fogOverlay = this.add.image(0, 0, 'fog')
-      .setOrigin(0).setDepth(30).setScrollFactor(0).setAlpha(0.15);
+      .setOrigin(0).setDepth(30).setScrollFactor(0).setAlpha(0.08);
 
     // ── UI ────────────────────────────────────────────────────────
     this._buildUI();
     this._buildVignette();
     this._buildTouchControls();
+    this._buildWatermark();
 
     // ── AUDIO ─────────────────────────────────────────────────────
     audio.startAmbient();
@@ -1072,10 +1286,22 @@ export class GameScene extends Phaser.Scene {
       btn.on('pointerdown', () => { this.touch[key] = true;  btn.setAlpha(0.75); });
       btn.on('pointerup',   () => { this.touch[key] = false; btn.setAlpha(alpha); });
       btn.on('pointerout',  () => { this.touch[key] = false; btn.setAlpha(alpha); });
+      btn.on('pointerupoutside', () => { this.touch[key] = false; btn.setAlpha(alpha); });
     };
     bindBtn(leftBtn, 'left');
     bindBtn(rightBtn, 'right');
     bindBtn(jumpBtn, 'jump');
+
+    // Global safety — if pointer released anywhere, clear all touch states
+    this.input.on('pointerup', () => {
+      this.touch.left  = false;
+      this.touch.right = false;
+      this.touch.jump  = false;
+      leftBtn.setAlpha(alpha);
+      rightBtn.setAlpha(alpha);
+      jumpBtn.setAlpha(alpha);
+    });
+
     this.input.addPointer(3);
   }
 
@@ -1123,7 +1349,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   _killPlayer() {
-    if (this.player.isDead) return;
+    if (this.player.isDead || this.player._isRespawning || this._killing) return;
+    this._killing = true;
     this.deathCount++;
     this.deathText.setText(`deaths: ${this.deathCount}`);
     audio.playDeath();
@@ -1155,6 +1382,7 @@ export class GameScene extends Phaser.Scene {
       this.time.delayedCall(450, () => {
         this.player.respawn(this.checkpointX, this.checkpointY);
         this.cameras.main.fadeIn(500, 0, 0, 0);
+        this.time.delayedCall(650, () => { this._killing = false; });
       });
     });
   }
@@ -1164,13 +1392,26 @@ export class GameScene extends Phaser.Scene {
     this._won = true;
     audio.playWin();
     audio.stopAmbient();
-
     this.cameras.main.fade(800, 0, 0, 0);
-
     this.time.delayedCall(900, () => {
-      // Transition to level 2
       this.scene.start('Level2Scene');
     });
+  }
+
+
+  _buildWatermark() {
+    const canvas = document.createElement('canvas');
+    canvas.width  = 60;
+    canvas.height = 60;
+    const ctx = canvas.getContext('2d');
+    _drawAMSLogo(ctx, 30, 30, 28, 0.5);
+    const key = 'ams-watermark-' + this.scene.key;
+    if (this.textures.exists(key)) this.textures.remove(key);
+    this.textures.addCanvas(key, canvas);
+    this.add.image(this.scale.width - 38, 22, key)
+      .setScrollFactor(0)
+      .setDepth(55)
+      .setAlpha(0.18);
   }
 
   _scheduleFlicker() {
@@ -1217,6 +1458,7 @@ import { Player } from '../entities/Player.js';
 import { Guard } from '../entities/Guard.js';
 import { GAME_CONFIG } from '../config.js';
 import { audio } from '../AudioManager.js';
+import { _drawAMSLogo } from './SplashScene.js';
 
 const WORLD_WIDTH = 2800;
 const GROUND_Y    = 340;
@@ -1382,12 +1624,13 @@ export class Level2Scene extends Phaser.Scene {
 
     // ── FOG ───────────────────────────────────────────────────────
     this.fogOverlay = this.add.image(0, 0, 'fog')
-      .setOrigin(0).setDepth(30).setScrollFactor(0).setAlpha(0.25);
+      .setOrigin(0).setDepth(30).setScrollFactor(0).setAlpha(0.1);
 
     // ── UI ────────────────────────────────────────────────────────
     this._buildUI();
     this._buildVignette();
     this._buildTouchControls();
+    this._buildWatermark();
 
     // ── AUDIO ─────────────────────────────────────────────────────
     audio.startAmbient();
@@ -1537,11 +1780,39 @@ export class Level2Scene extends Phaser.Scene {
       btn.on('pointerdown', () => { this.touch[key] = true;  btn.setAlpha(0.75); });
       btn.on('pointerup',   () => { this.touch[key] = false; btn.setAlpha(alpha); });
       btn.on('pointerout',  () => { this.touch[key] = false; btn.setAlpha(alpha); });
+      btn.on('pointerupoutside', () => { this.touch[key] = false; btn.setAlpha(alpha); });
     };
     bindBtn(leftBtn,  'left');
     bindBtn(rightBtn, 'right');
     bindBtn(jumpBtn,  'jump');
+
+    // Global safety — if pointer released anywhere, clear all touch states
+    this.input.on('pointerup', () => {
+      this.touch.left  = false;
+      this.touch.right = false;
+      this.touch.jump  = false;
+      leftBtn.setAlpha(alpha);
+      rightBtn.setAlpha(alpha);
+      jumpBtn.setAlpha(alpha);
+    });
+
     this.input.addPointer(3);
+  }
+
+
+  _buildWatermark() {
+    const canvas = document.createElement('canvas');
+    canvas.width  = 60;
+    canvas.height = 60;
+    const ctx = canvas.getContext('2d');
+    _drawAMSLogo(ctx, 30, 30, 28, 0.5);
+    const key = 'ams-watermark-' + this.scene.key;
+    if (this.textures.exists(key)) this.textures.remove(key);
+    this.textures.addCanvas(key, canvas);
+    this.add.image(this.scale.width - 38, 22, key)
+      .setScrollFactor(0)
+      .setDepth(55)
+      .setAlpha(0.18);
   }
 
   _hitCheckpoint(player, cp) {
@@ -1556,7 +1827,8 @@ export class Level2Scene extends Phaser.Scene {
   }
 
   _killPlayer() {
-    if (this.player.isDead) return;
+    if (this.player.isDead || this.player._isRespawning || this._killing) return;
+    this._killing = true;
     this.deathCount++;
     this.deathText.setText(`deaths: ${this.deathCount}`);
     audio.playDeath();
@@ -1567,6 +1839,7 @@ export class Level2Scene extends Phaser.Scene {
       this.time.delayedCall(450, () => {
         this.player.respawn(this.checkpointX, this.checkpointY);
         this.cameras.main.fadeIn(500, 0, 0, 0);
+        this.time.delayedCall(650, () => { this._killing = false; });
       });
     });
   }
@@ -1579,6 +1852,12 @@ export class Level2Scene extends Phaser.Scene {
     audio.stopRain();
 
     this.cameras.main.fade(1500, 255, 255, 255);
+
+    // Save best death count
+    const prev = localStorage.getItem('ams-best-deaths');
+    if (prev === null || this.deathCount < parseInt(prev)) {
+      localStorage.setItem('ams-best-deaths', this.deathCount);
+    }
 
     const win = this.add.text(GAME_CONFIG.width / 2, GAME_CONFIG.height / 2 - 30, 'YOU ESCAPED', {
       fontFamily: '"Courier New", monospace',
@@ -1644,11 +1923,12 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.body.setOffset(6, 4);
     this.body.setGravityY(0);
 
-    this.isDead      = false;
-    this.isGrounded  = false;
+    this.isDead       = false;
+    this.isGrounded   = false;
     this._wasGrounded = false;
-    this._landFrame  = 0;
+    this._landFrame   = 0;
     this._currentAnim = null;
+    this._isRespawning = false;
 
     this._createAnims(scene);
   }
@@ -1711,12 +1991,13 @@ export class Player extends Phaser.GameObjects.Sprite {
 
   _playAnim(key) {
     if (this._currentAnim === key) return;
+    if (!this.scene.anims.exists(key)) return;
     this._currentAnim = key;
     this.play(key);
   }
 
   update(cursors, wasd, touch = {}) {
-    if (this.isDead) return;
+    if (this.isDead || this._isRespawning) return;
 
     this._wasGrounded = this.isGrounded;
     this.isGrounded   = this.body.blocked.down;
@@ -1798,11 +2079,14 @@ export class Player extends Phaser.GameObjects.Sprite {
   }
 
   die(callback) {
-    if (this.isDead) return;
+    if (this.isDead || this._isRespawning) return;
     this.isDead = true;
+    this._isRespawning = false;
+    this.scene.tweens.killTweensOf(this);
     this.stop();
-    this.body.setVelocity(0, -180);
-    this.body.setGravityY(200);
+    // Disable physics body immediately — prevents re-triggering overlaps
+    this.body.enable = false;
+    this.body.setVelocity(0, 0);
 
     this.scene.tweens.add({
       targets: this,
@@ -1821,11 +2105,14 @@ export class Player extends Phaser.GameObjects.Sprite {
 
   respawn(x, y) {
     this.isDead = false;
+    this._isRespawning = true;
     this._currentAnim = null;
     this.setPosition(x, y);
     this.setAlpha(0);
     this.setScale(1, 1);
     this.setAngle(0);
+    // Re-enable physics body
+    this.body.enable = true;
     this.body.setVelocity(0, 0);
     this.body.setGravityY(0);
     this._playAnim('player-idle');
@@ -1835,6 +2122,7 @@ export class Player extends Phaser.GameObjects.Sprite {
       alpha: 1,
       duration: 600,
       ease: 'Power2',
+      onComplete: () => { this._isRespawning = false; },
     });
   }
 }
@@ -2152,4 +2440,4 @@ body { background: #04040a; }
 
 ENDOFFILE
 
-echo "✅ Done! Player is now animated."
+echo "✅ Done!"
