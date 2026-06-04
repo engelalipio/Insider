@@ -107,20 +107,12 @@ export class BootScene extends Phaser.Scene {
     platGfx.destroy();
 
     // ── PLAYER ────────────────────────────────────────────────────
+    // Spritesheet is generated dynamically by PlayerSprite.js
+    // A placeholder 1x1 texture avoids Phaser warnings
     const playerGfx = this.make.graphics({ x: 0, y: 0, add: false });
-    // body - small dark silhouette like Inside's boy
-    playerGfx.fillStyle(0x2a2a4a, 1);
-    // legs
-    playerGfx.fillRect(6, 28, 7, 12);
-    playerGfx.fillRect(15, 28, 7, 12);
-    // torso
-    playerGfx.fillRect(5, 14, 18, 16);
-    // head
-    playerGfx.fillEllipse(14, 10, 16, 14);
-    // red accent (shirt detail like Inside's red hoodie)
-    playerGfx.fillStyle(0xcc2222, 1);
-    playerGfx.fillRect(6, 16, 16, 8);
-    playerGfx.generateTexture('player', 28, 40);
+    playerGfx.fillStyle(0x000000, 0);
+    playerGfx.fillRect(0, 0, 1, 1);
+    playerGfx.generateTexture('player', 1, 1);
     playerGfx.destroy();
 
     // ── GUARD ─────────────────────────────────────────────────────
