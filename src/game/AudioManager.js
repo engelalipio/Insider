@@ -212,6 +212,62 @@ export class AudioManager {
     });
   }
 
+  // ── COMBAT SFX ─────────────────────────────────────────────────
+  playAttack() {
+    if (this._muted) return;
+    const ctx = this._getCtx();
+    // Short metallic slash: high sine sweep
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(900, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.14);
+    osc.connect(gain);
+    gain.connect(this._masterGain);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  }
+
+  playHit() {
+    if (this._muted) return;
+    const ctx = this._getCtx();
+    // Meaty thud: noise burst + low thump
+    [0, 0.03].forEach((t, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i === 0 ? 'square' : 'triangle';
+      osc.frequency.setValueAtTime(180 - i * 80, ctx.currentTime + t);
+      osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + t + 0.15);
+      gain.gain.setValueAtTime(0.14, ctx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.18);
+      osc.connect(gain);
+      gain.connect(this._masterGain);
+      osc.start(ctx.currentTime + t);
+      osc.stop(ctx.currentTime + t + 0.2);
+    });
+  }
+
+  playGuardDeath() {
+    if (this._muted) return;
+    const ctx = this._getCtx();
+    // Low death groan: descending distorted sweep
+    [0, 0.08, 0.18].forEach((t, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220 - i * 50, ctx.currentTime + t);
+      osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + t + 0.35);
+      gain.gain.setValueAtTime(0.1 - i * 0.02, ctx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.4);
+      osc.connect(gain);
+      gain.connect(this._masterGain);
+      osc.start(ctx.currentTime + t);
+      osc.stop(ctx.currentTime + t + 0.42);
+    });
+  }
+
   setMuted(muted) {
     this._muted = muted;
     if (this._masterGain) {

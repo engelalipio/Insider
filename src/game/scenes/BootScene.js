@@ -115,21 +115,58 @@ export class BootScene extends Phaser.Scene {
     playerGfx.generateTexture('player', 1, 1);
     playerGfx.destroy();
 
-    // ── GUARD ─────────────────────────────────────────────────────
+    // ── GUARD — Blasphemous inquisitor: crimson robe + silver helm ────────────
+    // Bright, high-contrast colours so they pop against dark backgrounds.
     const guardGfx = this.make.graphics({ x: 0, y: 0, add: false });
-    guardGfx.fillStyle(0x444444, 1);
-    // legs
-    guardGfx.fillRect(6, 30, 8, 14);
-    guardGfx.fillRect(18, 30, 8, 14);
-    // torso (bigger, more imposing)
+
+    // Robe legs (deep crimson)
+    guardGfx.fillStyle(0x8b1515, 1);
+    guardGfx.fillRect(5, 30, 9, 14);
+    guardGfx.fillRect(18, 30, 9, 14);
+
+    // Boot tips (dark leather)
+    guardGfx.fillStyle(0x2a1008, 1);
+    guardGfx.fillRect(5, 40, 9, 4);
+    guardGfx.fillRect(18, 40, 9, 4);
+
+    // Robe body (brighter crimson)
+    guardGfx.fillStyle(0xaa1a1a, 1);
     guardGfx.fillRect(4, 14, 24, 18);
-    // head with helmet
-    guardGfx.fillStyle(0x333333, 1);
-    guardGfx.fillEllipse(16, 9, 20, 16);
-    guardGfx.fillRect(4, 8, 24, 6);
-    // flashlight cone hint
-    guardGfx.fillStyle(0x886622, 0.7);
-    guardGfx.fillTriangle(32, 20, 56, 10, 56, 32);
+
+    // Chest armour plate (dark steel)
+    guardGfx.fillStyle(0x555568, 1);
+    guardGfx.fillRect(7, 15, 18, 12);
+
+    // Armour highlight strip
+    guardGfx.fillStyle(0x8888a0, 1);
+    guardGfx.fillRect(7, 15, 18, 2);
+
+    // Gold cross / insignia on chest
+    guardGfx.fillStyle(0xd4a820, 1);
+    guardGfx.fillRect(14, 17, 4, 9);   // vertical
+    guardGfx.fillRect(10, 20, 12, 3);  // horizontal
+
+    // Helmet (silver)
+    guardGfx.fillStyle(0xaaaabc, 1);
+    guardGfx.fillEllipse(16, 9, 22, 18);
+    guardGfx.fillRect(3, 7, 26, 7);    // brim
+
+    // Helmet highlight
+    guardGfx.fillStyle(0xddddee, 1);
+    guardGfx.fillRect(6, 4, 10, 3);
+
+    // Eye slit — orange glow (very visible)
+    guardGfx.fillStyle(0xff8800, 1);
+    guardGfx.fillRect(7, 9, 18, 3);
+    // Inner bright core
+    guardGfx.fillStyle(0xffcc44, 0.8);
+    guardGfx.fillRect(9, 9, 14, 2);
+
+    // Shoulder guard (left side from facing direction)
+    guardGfx.fillStyle(0x777788, 1);
+    guardGfx.fillRect(1, 14, 5, 8);
+    guardGfx.fillRect(26, 14, 5, 8);
+
     guardGfx.generateTexture('guard', 64, 44);
     guardGfx.destroy();
 
@@ -142,11 +179,18 @@ export class BootScene extends Phaser.Scene {
     cpGfx.generateTexture('checkpoint', 24, 40);
     cpGfx.destroy();
 
-    // ── HAZARD (spike) ────────────────────────────────────────────
+    // ── HAZARD (spike) — bright metal tips ────────────────────────
     const hazGfx = this.make.graphics({ x: 0, y: 0, add: false });
-    hazGfx.fillStyle(0x662222, 1);
+    // Base rail
+    hazGfx.fillStyle(0x441111, 1);
+    hazGfx.fillRect(0, 16, 64, 4);
+    // Spikes — dark red with bright silver tip
     for (let i = 0; i < 4; i++) {
-      hazGfx.fillTriangle(i * 16, 20, i * 16 + 8, 0, i * 16 + 16, 20);
+      hazGfx.fillStyle(0x882222, 1);
+      hazGfx.fillTriangle(i * 16, 20, i * 16 + 8, 2, i * 16 + 16, 20);
+      // Bright silver highlight on spike tip
+      hazGfx.fillStyle(0xccccdd, 0.9);
+      hazGfx.fillTriangle(i * 16 + 6, 10, i * 16 + 8, 2, i * 16 + 10, 10);
     }
     hazGfx.generateTexture('hazard', 64, 20);
     hazGfx.destroy();
